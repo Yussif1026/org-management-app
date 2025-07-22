@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api"; // Change this if you deploy your backend!
+const API_BASE = "https://org-management-app-backend.onrender.com/api"; // UPDATED TO DEPLOYED BACKEND
 
 // --- AUTH LOGIC ---
 
