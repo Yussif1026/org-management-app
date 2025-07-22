@@ -1,4 +1,4 @@
-const API_BASE = "https://org-management-app-backend.onrender.com/api"; // UPDATED TO DEPLOYED BACKEND
+const API_BASE = "https://org-management-app-backend.onrender.com/api";
 
 // --- AUTH LOGIC ---
 
@@ -52,7 +52,7 @@ async function login() {
         if (res.ok && data.token) {
             localStorage.setItem("token", data.token);
             alert(`Welcome back, ${data.user.fullname}!`);
-            window.location.reload(); // Reload to fetch profile and show dashboard
+            window.location.reload();
         } else {
             alert(data.msg || "Login failed.");
         }
@@ -118,7 +118,7 @@ async function fetchProfile() {
             renderProfileInfo(data);
             if (data.isAdmin) {
                 document.getElementById('admin-sections').classList.remove('hidden');
-                fetchMembers(); // admin only
+                fetchMembers();
             } else {
                 document.getElementById('admin-sections').classList.add('hidden');
             }
@@ -205,7 +205,6 @@ async function payMonthly() {
         });
         const data = await res.json();
         if (res.ok && (data.url || data.authorization_url)) {
-            // Redirect to Paystack payment page
             window.location.href = data.url || data.authorization_url;
         } else {
             alert(data.msg || 'Payment could not be initialized.');
@@ -229,7 +228,6 @@ async function payOccasion() {
         });
         const data = await res.json();
         if (res.ok && (data.url || data.authorization_url)) {
-            // Redirect to Paystack payment page
             window.location.href = data.url || data.authorization_url;
         } else {
             alert(data.msg || 'Payment could not be initialized.');
@@ -330,8 +328,8 @@ function renderMembers(users) {
     });
 }
 
-// Admin: Create New Event
-async function createEvent() {
+// Admin: Create New Event (for admin panel)
+async function adminCreateEvent() {
     const token = localStorage.getItem("token");
     const title = document.getElementById('event-title').value;
     const description = document.getElementById('event-description').value;
