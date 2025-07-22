@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Register new user
 exports.register = async (req, res) => {
   const { fullname, email, phone, password } = req.body;
   try {
@@ -19,6 +20,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// Login user
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -35,5 +37,27 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     res.status(500).send('Server error');
+  }
+};
+
+// Get profile of logged-in user (requires auth middleware)
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+// Get all members (admin only, requires auth middleware)
+exports.getMembers = async (req, res) => {
+  try {
+    if (!req.user.isAdmin) return res.status(403).json({ msg: 'Not authorized' });
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
   }
 };
