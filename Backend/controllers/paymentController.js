@@ -47,11 +47,14 @@ exports.makePayment = async (req, res) => {
 
 // 2. Handle Paystack Webhook for real payment verification
 exports.handlePaystackWebhook = async (req, res) => {
+  // *** LOGGING ADDED HERE ***
+  console.log("Webhook received!", JSON.stringify(req.body, null, 2));
   // Validate Paystack signature
   const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
     .update(JSON.stringify(req.body))
     .digest('hex');
   if (hash !== req.headers['x-paystack-signature']) {
+    console.warn('Webhook signature mismatch! Unauthorized request.');
     return res.status(401).send('Unauthorized');
   }
 
@@ -60,6 +63,7 @@ exports.handlePaystackWebhook = async (req, res) => {
   if (event.event === 'charge.success') {
     const { email, metadata, amount, paid_at } = event.data;
     try {
+      console.log(`Processing successful payment for ${email}, amount: ${amount}`);
       const user = await User.findOne({ email });
       if (user) {
         // Only add payment if this reference hasn't already been added (idempotency)
@@ -73,10 +77,16 @@ exports.handlePaystackWebhook = async (req, res) => {
             reference: event.data.reference
           });
           await user.save();
+          console.log(`Payment added to user ${user.email}, ref: ${event.data.reference}`);
+        } else {
+          console.log(`Payment with reference ${event.data.reference} already exists for user ${user.email}.`);
         }
+      } else {
+        console.warn(`User not found for email: ${email}`);
       }
       return res.sendStatus(200);
     } catch (err) {
+      console.error('Error in webhook processing:', err);
       return res.sendStatus(500);
     }
   }
