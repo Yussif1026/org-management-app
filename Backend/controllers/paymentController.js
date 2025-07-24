@@ -61,7 +61,12 @@ exports.handlePaystackWebhook = async (req, res) => {
   const event = req.body;
   // Only process successful payment events
   if (event.event === 'charge.success') {
-    const { email, metadata, amount, paid_at } = event.data;
+    // Paystack can send the email under event.data.email or event.data.customer.email
+    let email = event.data.email;
+    if (!email && event.data.customer && event.data.customer.email) {
+      email = event.data.customer.email;
+    }
+    const { metadata, amount, paid_at } = event.data;
     try {
       console.log(`Processing successful payment for ${email}, amount: ${amount}`);
       const user = await User.findOne({ email });
@@ -70,9 +75,9 @@ exports.handlePaystackWebhook = async (req, res) => {
         const exists = user.payments.some(p => p.reference === event.data.reference);
         if (!exists) {
           user.payments.push({
-            type: metadata.type,
+            type: metadata?.type || null,
             amount: amount / 100, // convert kobo to GHC
-            eventType: metadata.eventType || null,
+            eventType: metadata?.eventType || null,
             date: paid_at,
             reference: event.data.reference
           });
