@@ -47,8 +47,8 @@ exports.makePayment = async (req, res) => {
 
 // 2. Handle Paystack Webhook for real payment verification
 exports.handlePaystackWebhook = async (req, res) => {
-  // *** LOGGING ADDED HERE ***
   console.log("Webhook received!", JSON.stringify(req.body, null, 2));
+
   // Validate Paystack signature
   const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
     .update(JSON.stringify(req.body))
@@ -61,15 +61,21 @@ exports.handlePaystackWebhook = async (req, res) => {
   const event = req.body;
   // Only process successful payment events
   if (event.event === 'charge.success') {
-    // Paystack can send the email under event.data.email or event.data.customer.email
+    // Extract email robustly from both possible locations
     let email = event.data.email;
     if (!email && event.data.customer && event.data.customer.email) {
       email = event.data.customer.email;
     }
     const { metadata, amount, paid_at } = event.data;
+
     try {
+      if (!email) {
+        console.error('No email found in webhook payload!');
+        return res.sendStatus(200); // Still return 200 to avoid Paystack retries
+      }
       console.log(`Processing successful payment for ${email}, amount: ${amount}`);
       const user = await User.findOne({ email });
+
       if (user) {
         // Only add payment if this reference hasn't already been added (idempotency)
         const exists = user.payments.some(p => p.reference === event.data.reference);
