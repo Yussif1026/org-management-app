@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         showAuthForms();
     }
-    // Allow pressing Enter to submit login/register
     ["login-password", "register-password"].forEach(id => {
         document.getElementById(id).addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
@@ -95,6 +94,7 @@ function showDashboard() {
     fetchPayments();
     fetchEvents();
     fetchMembers();
+    // ADMIN: fetch all payment history if admin, triggered from fetchProfile()
 }
 
 function showAuthForms() {
@@ -116,9 +116,12 @@ async function fetchProfile() {
         if (res.ok) {
             document.getElementById('member-name').textContent = data.fullname;
             renderProfileInfo(data);
+
+            // If admin, show admin sections and load all payments
             if (data.isAdmin) {
                 document.getElementById('admin-sections').classList.remove('hidden');
                 fetchMembers();
+                fetchAllPayments();
             } else {
                 document.getElementById('admin-sections').classList.add('hidden');
             }
@@ -189,6 +192,47 @@ function renderPaymentSummary(payments) {
         <div class="bg-blue-50 p-4 rounded-lg"><h4 class="font-medium text-blue-800">Monthly Payments</h4><p class="text-2xl font-bold text-blue-900">GHC ${monthlyPayments}</p></div>
         <div class="bg-purple-50 p-4 rounded-lg"><h4 class="font-medium text-purple-800">Occasion Payments</h4><p class="text-2xl font-bold text-purple-900">GHC ${occasionPayments}</p></div>
     `;
+}
+
+// --- ADMIN: Fetch all payments for all users ---
+async function fetchAllPayments() {
+    const token = localStorage.getItem("token");
+    try {
+        const res = await fetch(`${API_BASE}/payments/all`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const payments = await res.json();
+        if (res.ok) {
+            renderAdminPaymentHistory(payments);
+        } else {
+            alert("Could not fetch all payment records.");
+        }
+    } catch (err) {
+        // Optionally log error
+    }
+}
+
+// --- ADMIN: Render all payments table (for admin) ---
+function renderAdminPaymentHistory(payments) {
+    const tbody = document.querySelector("#admin-history-table tbody");
+    tbody.innerHTML = '';
+    if (!payments.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No payment history yet</td></tr>`;
+        return;
+    }
+    payments.forEach(payment => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="px-6 py-4">${payment.name}</td>
+            <td class="px-6 py-4">${payment.email}</td>
+            <td class="px-6 py-4">${payment.phone || 'N/A'}</td>
+            <td class="px-6 py-4">${payment.type === 'monthly' ? 'Monthly' : 'Occasion'}</td>
+            <td class="px-6 py-4">GHC ${payment.amount}</td>
+            <td class="px-6 py-4">${payment.eventType || 'N/A'}</td>
+            <td class="px-6 py-4">${(payment.date || '').slice(0,10)}</td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 // --- Make Payments (call API and redirect to Paystack) ---

@@ -126,3 +126,30 @@ exports.getSummary = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// 5. ADMIN: Get all users with their payment history (for admins only)
+exports.getAllUserPayments = async (req, res) => {
+  try {
+    // Only allow admin users (requires isAdmin field on user)
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ msg: "Access denied: admin only" });
+    }
+    const users = await User.find({}, 'fullname email phone payments');
+    const allPayments = [];
+    users.forEach(user => {
+      (user.payments || []).forEach(payment => {
+        allPayments.push({
+          name: user.fullname,
+          email: user.email,
+          phone: user.phone,
+          ...payment._doc // type, amount, eventType, date, reference
+        });
+      });
+    });
+    // Sort newest first
+    allPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(allPayments);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+};

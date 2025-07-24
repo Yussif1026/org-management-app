@@ -11,4 +11,7 @@ router.get('/summary', auth, paymentController.getSummary);
 // Paystack webhook does NOT require auth!
 router.post('/paystack/webhook', paymentController.handlePaystackWebhook);
 
+// ADMIN: All user payment histories for admin panel
+router.get('/all', auth, paymentController.getAllUserPayments);
+
 module.exports = router;
